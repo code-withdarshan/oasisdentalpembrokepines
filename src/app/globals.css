@@ -1,0 +1,116 @@
+@import "tailwindcss";
+
+@theme {
+  /* Brand palette — black foundation with deep blue and bright clinical cyan */
+  --color-bg: #f6fcff;
+  --color-fg: #000000;
+  --color-ink: #061625;
+  --color-muted: #405566;
+  --color-soft: #6d8794;
+  --color-line: #c7eaf3;
+  --color-surface: #eaf8fc;
+  --color-surface-2: #d7f2f8;
+  --color-paper: #f7fdff;
+  --color-cream: #eaf8fc;
+  --color-brand-soft: #dff8fc;
+  --color-brand-mid: #0992c2;
+  --color-brand-deep: #0b2d72;
+  --color-night: #031f39;
+  --color-night-2: #0b2d72;
+  --color-night-text: #b9dceb;
+  --color-ink-contrast: #ffffff;
+  --color-accent: #0ac4e0;
+  --color-accent-fg: #000000;
+
+  /* Type scale (in addition to Tailwind defaults) */
+  --text-eyebrow: 0.6875rem; /* 11px */
+  --text-eyebrow--line-height: 1;
+}
+
+@theme inline {
+  --font-sans: var(--font-sans);
+  --font-serif: var(--font-serif);
+}
+
+/* Global resets aligned with the "no radius" brand rule. */
+*,
+*::before,
+*::after {
+  border-radius: 0 !important;
+}
+
+html,
+body {
+  background: var(--color-bg);
+  color: var(--color-ink);
+}
+
+body {
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: 1rem;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "ss01", "cv11";
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 8% 12%, rgba(10, 196, 224, 0.18), transparent 24rem),
+    radial-gradient(circle at 92% 0%, rgba(9, 146, 194, 0.14), transparent 22rem),
+    linear-gradient(180deg, rgba(247, 253, 255, 0.96), rgba(246, 252, 255, 1));
+}
+
+/* Refined serif rendering for Fraunces. */
+.font-serif {
+  font-feature-settings: "ss01";
+  font-variation-settings: "SOFT" 50, "opsz" 144;
+}
+
+::selection {
+  background: var(--color-accent);
+  color: var(--color-accent-fg);
+}
+
+a:focus-visible,
+button:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+@utility bg-clinic-paper {
+  background:
+    radial-gradient(circle at 0% 0%, rgba(10, 196, 224, 0.18), transparent 22rem),
+    linear-gradient(135deg, var(--color-paper), var(--color-surface));
+}
+
+@utility bg-brand-depth {
+  background:
+    radial-gradient(circle at 82% 18%, rgba(9, 146, 194, 0.3), transparent 18rem),
+    linear-gradient(135deg, #031f39 0%, #0b2d72 58%, #00151f 100%);
+}
+
+@utility bg-accent-field {
+  background:
+    radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.34), transparent 18rem),
+    linear-gradient(135deg, var(--color-accent), var(--color-brand-mid));
+}
+
+@utility texture-grid {
+  background-image:
+    linear-gradient(rgba(9, 146, 194, 0.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(9, 146, 194, 0.12) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+@utility texture-dots {
+  background-image: radial-gradient(rgba(10, 196, 224, 0.2) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+
