@@ -88,7 +88,7 @@ function MegaMenuPanel({
                       onClick={onSelect}
                       className="group inline-flex items-baseline gap-2"
                     >
-                      <span className="font-serif text-[19px] leading-[1.2] tracking-[-0.01em] text-fg group-hover:underline group-hover:decoration-accent group-hover:decoration-[3px] group-hover:underline-offset-[5px]">
+                      <span className="font-serif text-[19px] leading-[1.2] tracking-[-0.01em] text-fg underline decoration-accent decoration-[3px] underline-offset-[5px]">
                         {cat.label}
                       </span>
                     </Link>

@@ -45,6 +45,16 @@ export type LegacyPage = {
   kind: PageKind;
 };
 
+const SUMMARY_PATH_CANDIDATES = [
+  path.join(process.cwd(), "summary.json"),
+  path.join(process.cwd(), "public", "legacy-screenshots", "summary.json"),
+  path.join(process.cwd(), "..", "summary.json"),
+] as const;
+
+let summaryPromise: Promise<LegacyCaptureSummary> | null = null;
+let warnedMissingSummary = false;
+const shouldLogMissingSummary = process.env.LEGACY_SUMMARY_VERBOSE === "1";
+
 function ensureTrailingSlash(p: string) {
   return p.endsWith("/") ? p : `${p}/`;
 }
@@ -78,10 +88,42 @@ export function classifyPath(p: string): PageKind {
 }
 
 export async function readLegacySummary(): Promise<LegacyCaptureSummary> {
-  // Running inside `oasis-dental/`; capture artifacts live one folder up.
-  const summaryPath = path.join(process.cwd(), "..", "summary.json");
-  const raw = await readFile(summaryPath, "utf-8");
-  return JSON.parse(raw) as LegacyCaptureSummary;
+  if (!summaryPromise) {
+    summaryPromise = (async () => {
+      for (const summaryPath of SUMMARY_PATH_CANDIDATES) {
+        try {
+          const raw = await readFile(summaryPath, "utf-8");
+          return JSON.parse(raw) as LegacyCaptureSummary;
+        } catch (error) {
+          const err = error as NodeJS.ErrnoException;
+          if (err?.code === "ENOENT") continue;
+          throw error;
+        }
+      }
+
+      if (!warnedMissingSummary && shouldLogMissingSummary) {
+        warnedMissingSummary = true;
+        console.warn(
+          [
+            "[legacy-pages] No summary.json file was found.",
+            "Checked locations:",
+            ...SUMMARY_PATH_CANDIDATES.map((p) => `- ${p}`),
+            "Continuing with zero captured legacy pages.",
+          ].join("\n"),
+        );
+      }
+
+      return {
+        capturedAt: "",
+        total: 0,
+        ok: 0,
+        failed: 0,
+        results: [],
+      } satisfies LegacyCaptureSummary;
+    })();
+  }
+
+  return summaryPromise;
 }
 
 export async function listLegacyPages(): Promise<LegacyPage[]> {
