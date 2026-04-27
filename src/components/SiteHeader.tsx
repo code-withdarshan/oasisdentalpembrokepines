@@ -46,6 +46,154 @@ function ChevronDown({
   );
 }
 
+function MenuIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 22 22"
+      fill="none"
+      aria-hidden="true"
+      className={className}
+    >
+      <path
+        d="M3 6h16M3 11h16M3 16h16"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function CloseIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 22 22"
+      fill="none"
+      aria-hidden="true"
+      className={className}
+    >
+      <path
+        d="M6 6l10 10M16 6 6 16"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Mobile navigation                                                  */
+/* ------------------------------------------------------------------ */
+
+function MobileNavList({
+  items,
+  level = 0,
+  onSelect,
+  tabIndex,
+}: {
+  items: NavItem[];
+  level?: number;
+  onSelect: () => void;
+  tabIndex: number;
+}) {
+  return (
+    <ul className={level === 0 ? "space-y-2" : "space-y-1"}>
+      {items.map((item) => (
+        <MobileNavItem
+          key={item.href}
+          item={item}
+          level={level}
+          onSelect={onSelect}
+          tabIndex={tabIndex}
+        />
+      ))}
+    </ul>
+  );
+}
+
+function MobileNavItem({
+  item,
+  level,
+  onSelect,
+  tabIndex,
+}: {
+  item: NavItem;
+  level: number;
+  onSelect: () => void;
+  tabIndex: number;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const hasChildren = !!item.children?.length;
+  const isTopLevel = level === 0;
+  const isNested = level > 1;
+  const itemBg = isTopLevel ? "bg-paper" : "bg-bg/70";
+  const linkTone = isTopLevel
+    ? "text-[14px] font-semibold uppercase tracking-[0.14em] text-ink"
+    : isNested
+      ? "text-[13px] leading-[1.35] text-muted"
+      : "text-[14px] leading-[1.35] font-medium text-muted";
+  const linkPad = isTopLevel ? "px-4 py-3.5" : "px-4 py-2.5";
+
+  if (!hasChildren) {
+    return (
+      <li className={itemBg}>
+        <Link
+          href={item.href}
+          onClick={onSelect}
+          tabIndex={tabIndex}
+          className={`block break-words transition-colors hover:text-fg ${linkPad} ${linkTone}`}
+        >
+          {item.label}
+        </Link>
+      </li>
+    );
+  }
+
+  return (
+    <li className={itemBg}>
+      <div className="flex items-stretch">
+        <Link
+          href={item.href}
+          onClick={onSelect}
+          tabIndex={tabIndex}
+          className={`flex min-w-0 flex-1 items-center break-words transition-colors hover:text-fg ${linkPad} ${linkTone}`}
+        >
+          {item.label}
+        </Link>
+        <button
+          type="button"
+          tabIndex={tabIndex}
+          aria-label={`${expanded ? "Collapse" : "Expand"} ${item.label}`}
+          aria-expanded={expanded}
+          onClick={() => setExpanded((value) => !value)}
+          className="flex w-12 shrink-0 items-center justify-center bg-surface text-fg transition-colors hover:bg-fg hover:text-ink-contrast"
+        >
+          <ChevronDown
+            className={`transition-transform duration-200 ${
+              expanded ? "rotate-180" : ""
+            }`}
+          />
+        </button>
+      </div>
+      {expanded ? (
+        <div className={isTopLevel ? "px-3 pb-3" : "pl-3 pr-0 pb-2"}>
+          <MobileNavList
+            items={item.children ?? []}
+            level={level + 1}
+            onSelect={onSelect}
+            tabIndex={tabIndex}
+          />
+        </div>
+      ) : null}
+    </li>
+  );
+}
+
 /* ------------------------------------------------------------------ */
 /*  Panel layouts                                                     */
 /* ------------------------------------------------------------------ */
@@ -191,14 +339,21 @@ function SimplePanel({
 
 export function SiteHeader() {
   const [openKey, setOpenKey] = useState<string | null>(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
+
+  const closeAll = () => {
+    setOpenKey(null);
+    setMobileOpen(false);
+  };
 
   // Close on outside click + on Escape.
   useEffect(() => {
-    if (!openKey) return;
+    if (!openKey && !mobileOpen) return;
 
     function onDown(e: MouseEvent) {
       if (
+        openKey &&
         headerRef.current &&
         !headerRef.current.contains(e.target as Node)
       ) {
@@ -206,7 +361,10 @@ export function SiteHeader() {
       }
     }
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpenKey(null);
+      if (e.key === "Escape") {
+        setOpenKey(null);
+        setMobileOpen(false);
+      }
     }
     document.addEventListener("mousedown", onDown);
     document.addEventListener("keydown", onKey);
@@ -214,10 +372,34 @@ export function SiteHeader() {
       document.removeEventListener("mousedown", onDown);
       document.removeEventListener("keydown", onKey);
     };
-  }, [openKey]);
+  }, [mobileOpen, openKey]);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [mobileOpen]);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+
+    const desktopQuery = window.matchMedia("(min-width: 1024px)");
+    const onChange = () => {
+      if (desktopQuery.matches) setMobileOpen(false);
+    };
+
+    onChange();
+    desktopQuery.addEventListener("change", onChange);
+    return () => desktopQuery.removeEventListener("change", onChange);
+  }, [mobileOpen]);
 
   const items = PRIMARY_NAV.filter((i) => PRIMARY_HREFS.has(i.href));
   const openItem = items.find((i) => i.href === openKey) ?? null;
+  const mobileNavTabIndex = mobileOpen ? 0 : -1;
 
   // Decide if the open menu should render as a mega menu (categories with
   // sub-pages) or as a simple compact dropdown.

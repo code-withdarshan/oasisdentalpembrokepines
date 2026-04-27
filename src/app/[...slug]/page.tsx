@@ -73,7 +73,7 @@ export async function generateMetadata({
   const match = pages.find((p) => p.path === pathname);
   if (!match) return {};
 
-  const content = await readLegacyHtmlMain(match.htmlPath);
+  const content = await readLegacyHtmlMain(match.htmlPath, match);
   return {
     title: content.title ?? undefined,
     description: content.description ?? undefined,
@@ -577,11 +577,11 @@ function CtaCard() {
 
 function SectionSidebar({
   heading,
-  children,
+  items,
   cover,
 }: {
   heading: string;
-  children: Array<{ href: string; label: string }>;
+  items: Array<{ href: string; label: string }>;
   cover?: ReturnType<typeof coverPhotoFor>;
 }) {
   return (
@@ -590,7 +590,7 @@ function SectionSidebar({
       <Card tone="surface" padding="default">
         <Eyebrow>{heading}</Eyebrow>
         <ul className="mt-5">
-          {children.map((c, i) => (
+          {items.map((c, i) => (
             <li key={c.href}>
               <Link
                 href={c.href}
@@ -601,10 +601,10 @@ function SectionSidebar({
                   →
                 </span>
               </Link>
-              {i < children.length - 1 ? <Hr /> : null}
+              {i < items.length - 1 ? <Hr /> : null}
             </li>
           ))}
-          {!children.length ? (
+          {!items.length ? (
             <li className="py-3 text-sm text-muted">More pages coming soon.</li>
           ) : null}
         </ul>
@@ -645,7 +645,7 @@ export default async function LegacyPage({
   const match = pages.find((p) => p.path === pathname);
   if (!match) notFound();
 
-  const content = await readLegacyHtmlMain(match.htmlPath);
+  const content = await readLegacyHtmlMain(match.htmlPath, match);
 
   /* ────────────  Contact / Appointment  ──────────── */
   if (match.kind === "contact" || match.kind === "appointmentRequest") {
@@ -895,7 +895,7 @@ export default async function LegacyPage({
               <div className="lg:col-span-4">
                 <SectionSidebar
                   heading="In this section"
-                  children={children}
+                  items={children}
                   cover={cover}
                 />
               </div>

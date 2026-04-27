@@ -13,9 +13,69 @@ export type LegacyPageContent = {
   bodyHtml: string;
 };
 
+type LegacyContentFallback = {
+  path?: string;
+  title?: string;
+  kind?: string;
+};
+
+function titleFromPath(pathname?: string) {
+  const leaf = pathname?.split("/").filter(Boolean).at(-1) ?? "Oasis Dental";
+  return decodeURIComponent(leaf)
+    .replace(/-/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+    .replace(/\bTmj\b/g, "TMJ")
+    .replace(/\bFaqs\b/g, "FAQs")
+    .replace(/\bX Rays\b/g, "X-Rays")
+    .replace(/\bCarecredit\b/g, "CareCredit");
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function createFallbackContent(
+  fallback?: LegacyContentFallback,
+): LegacyPageContent {
+  const title = fallback?.title ?? titleFromPath(fallback?.path);
+  const lowerTitle = title.toLowerCase();
+  const isGallery = fallback?.kind?.startsWith("gallery") ?? false;
+  const isProcedure =
+    fallback?.kind?.startsWith("procedures") ||
+    fallback?.path?.startsWith("/procedures/");
+
+  const description = isGallery
+    ? `Explore ${lowerTitle} examples from Oasis Dental in Pembroke Pines.`
+    : isProcedure
+      ? `Learn about ${lowerTitle} at Oasis Dental in Pembroke Pines.`
+      : `${title} information from Oasis Dental in Pembroke Pines.`;
+
+  const body = isGallery
+    ? `This section shares ${lowerTitle} information from the Oasis Dental smile gallery.`
+    : isProcedure
+      ? `This page explains ${lowerTitle}, what to expect, and how the Oasis Dental team approaches care with comfort and clarity.`
+      : `Find helpful ${lowerTitle} information for Oasis Dental patients and visitors.`;
+
+  return {
+    title,
+    description,
+    canonical: null,
+    h1: title,
+    h2: title,
+    bodyHtml: `<p>${escapeHtml(body)}</p>`,
+  };
+}
+
 function resolveLegacyHtmlPath(htmlPathFromSummary: string) {
-  // App runs in `oasis-dental/`; legacy artifacts live one folder up.
-  return path.join(process.cwd(), "..", htmlPathFromSummary);
+  return path.join(
+    /*turbopackIgnore: true*/ process.cwd(),
+    htmlPathFromSummary,
+  );
 }
 
 function rewriteLegacyLinks(html: string) {
@@ -86,9 +146,24 @@ function cleanMainContent($: cheerio.CheerioAPI) {
 
 export async function readLegacyHtmlMain(
   htmlPathFromSummary: string,
+  fallback?: LegacyContentFallback,
 ): Promise<LegacyPageContent> {
+  if (!htmlPathFromSummary) {
+    return createFallbackContent(fallback);
+  }
+
   const full = resolveLegacyHtmlPath(htmlPathFromSummary);
-  const raw = await readFile(full, "utf-8");
+  let raw: string;
+  try {
+    raw = await readFile(full, "utf-8");
+  } catch (error) {
+    const err = error as NodeJS.ErrnoException;
+    if (err?.code === "ENOENT") {
+      return createFallbackContent(fallback);
+    }
+    throw error;
+  }
+
   const $ = cheerio.load(raw);
 
   const title = $("head title").first().text().trim() || null;
@@ -122,4 +197,3 @@ export async function readLegacyHtmlMain(
     bodyHtml,
   };
 }
-

@@ -72,7 +72,7 @@ export const PRIMARY_NAV: NavItem[] = [
         label: "Oral & Maxillofacial Surgery",
         href: "/procedures/oral-maxillofacial-surgery/",
         children: [
-          { label: "Botox® as an Alternative Treatment for TMJ", href: "/procedures/oral-maxillofacial-surgery/botox%C2%AE-as-an-alternative-treatment-for-tmj/" },
+          { label: "Botox® as an Alternative Treatment for TMJ", href: "/procedures/oral-maxillofacial-surgery/botox-as-an-alternative-treatment-for-tmj/" },
           { label: "Apicoectomy", href: "/procedures/oral-maxillofacial-surgery/apicoectomy/" },
           { label: "Bone Grafting", href: "/procedures/oral-maxillofacial-surgery/bone-grafting/" },
           { label: "Dental Implants", href: "/procedures/oral-maxillofacial-surgery/dental-implants/" },
@@ -176,4 +176,3 @@ export function findParentOfHref(
   }
   return null;
 }
-

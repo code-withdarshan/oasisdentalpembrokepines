@@ -1,7 +1,7 @@
 import "server-only";
 
-import { readFile } from "node:fs/promises";
-import path from "node:path";
+import legacySummary from "../../summary.json";
+import { PRIMARY_NAV, type NavItem } from "@/lib/nav";
 
 export type LegacyCaptureResult = {
   originalUrl: string;
@@ -39,24 +39,45 @@ export type PageKind =
 
 export type LegacyPage = {
   path: string;
+  title?: string;
   finalUrl: string;
   htmlPath: string;
   screenshotPath: string;
   kind: PageKind;
 };
 
-const SUMMARY_PATH_CANDIDATES = [
-  path.join(process.cwd(), "summary.json"),
-  path.join(process.cwd(), "public", "legacy-screenshots", "summary.json"),
-  path.join(process.cwd(), "..", "summary.json"),
-] as const;
-
-let summaryPromise: Promise<LegacyCaptureSummary> | null = null;
-let warnedMissingSummary = false;
-const shouldLogMissingSummary = process.env.LEGACY_SUMMARY_VERBOSE === "1";
-
 function ensureTrailingSlash(p: string) {
   return p.endsWith("/") ? p : `${p}/`;
+}
+
+function flattenNavItems(items: NavItem[]): NavItem[] {
+  return items.flatMap((item) => [
+    item,
+    ...(item.children ? flattenNavItems(item.children) : []),
+  ]);
+}
+
+function listFallbackLegacyPages(): LegacyPage[] {
+  const extraPages: NavItem[] = [
+    { label: "Welcome", href: "/welcome/" },
+    { label: "Testimonials", href: "/testimonials/" },
+  ];
+
+  const pagesByPath = new Map<string, NavItem>();
+  for (const item of [...extraPages, ...flattenNavItems(PRIMARY_NAV)]) {
+    pagesByPath.set(ensureTrailingSlash(item.href), item);
+  }
+
+  return Array.from(pagesByPath.entries())
+    .map(([pathname, item]) => ({
+      path: pathname,
+      title: item.label,
+      finalUrl: `https://www.oasisdentalpembrokepines.com${pathname}`,
+      htmlPath: "",
+      screenshotPath: "",
+      kind: classifyPath(pathname),
+    }))
+    .sort((a, b) => a.path.localeCompare(b.path));
 }
 
 export function classifyPath(p: string): PageKind {
@@ -88,46 +109,15 @@ export function classifyPath(p: string): PageKind {
 }
 
 export async function readLegacySummary(): Promise<LegacyCaptureSummary> {
-  if (!summaryPromise) {
-    summaryPromise = (async () => {
-      for (const summaryPath of SUMMARY_PATH_CANDIDATES) {
-        try {
-          const raw = await readFile(summaryPath, "utf-8");
-          return JSON.parse(raw) as LegacyCaptureSummary;
-        } catch (error) {
-          const err = error as NodeJS.ErrnoException;
-          if (err?.code === "ENOENT") continue;
-          throw error;
-        }
-      }
-
-      if (!warnedMissingSummary && shouldLogMissingSummary) {
-        warnedMissingSummary = true;
-        console.warn(
-          [
-            "[legacy-pages] No summary.json file was found.",
-            "Checked locations:",
-            ...SUMMARY_PATH_CANDIDATES.map((p) => `- ${p}`),
-            "Continuing with zero captured legacy pages.",
-          ].join("\n"),
-        );
-      }
-
-      return {
-        capturedAt: "",
-        total: 0,
-        ok: 0,
-        failed: 0,
-        results: [],
-      } satisfies LegacyCaptureSummary;
-    })();
-  }
-
-  return summaryPromise;
+  return legacySummary as LegacyCaptureSummary;
 }
 
 export async function listLegacyPages(): Promise<LegacyPage[]> {
   const summary = await readLegacySummary();
+
+  if (summary.results.length === 0) {
+    return listFallbackLegacyPages();
+  }
 
   return summary.results
     .map((r) => {
@@ -143,4 +133,3 @@ export async function listLegacyPages(): Promise<LegacyPage[]> {
     })
     .sort((a, b) => a.path.localeCompare(b.path));
 }
-
